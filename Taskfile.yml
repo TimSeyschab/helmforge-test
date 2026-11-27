@@ -1,0 +1,35 @@
+version: '3'
+
+vars:
+  KUBE_CONTEXT: kind-kind
+  KUBECONFIG_PATH: '{{.HOME}}/.kube/config'
+
+env:
+  REDIS_NAMESPACE: '{{.NAMESPACE}}'
+  REDIS_KUBE_CONTEXT: '{{.KUBE_CONTEXT}}'
+  REDIS_KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
+
+tasks:
+  provision:
+    desc: Provision the namespace and Redis Sentinel with Terraform
+    requires:
+      vars: [NAMESPACE]
+    cmds:
+      - terraform init -input=false
+      - |
+        terraform apply \
+          -var="namespace=$REDIS_NAMESPACE" \
+          -var="kube_context=$REDIS_KUBE_CONTEXT" \
+          -var="kubeconfig_path=$REDIS_KUBECONFIG_PATH"
+
+  cleanup:
+    desc: Destroy Redis Sentinel and its dedicated namespace, including PVCs
+    requires:
+      vars: [NAMESPACE]
+    cmds:
+      - terraform init -input=false
+      - |
+        terraform destroy \
+          -var="namespace=$REDIS_NAMESPACE" \
+          -var="kube_context=$REDIS_KUBE_CONTEXT" \
+          -var="kubeconfig_path=$REDIS_KUBECONFIG_PATH"

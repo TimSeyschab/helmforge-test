@@ -1,0 +1,53 @@
+architecture: sentinel
+fullnameOverride: db
+
+auth:
+  enabled: true
+  sentinel: true
+  existingSecret: ${jsonencode(secret_name)}
+  existingSecretPasswordKey: ${jsonencode(secret_key)}
+
+config:
+  redis: |
+    appendonly yes
+    appendfsync everysec
+
+node:
+  replicaCount: 4
+  persistence:
+    enabled: true
+
+sentinel:
+  masterSet: mymaster
+  replicaCount: 3
+  quorum: 2
+  waitForMaster:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+
+service:
+  type: ClusterIP
+  ports:
+    sentinel: 26379
+
+extraManifests:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: db
+    spec:
+      type: ClusterIP
+      ports:
+        - name: sentinel
+          port: 26379
+          targetPort: sentinel
+      selector:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: db
+        app.kubernetes.io/component: sentinel
